@@ -11,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class DepositRequest {
+public class RequestDTO {
 
     @NotNull(message = "Amount must not be null")
     @DecimalMin(value = "0.01", message = "Amount must be greater than or equal to 0.01")

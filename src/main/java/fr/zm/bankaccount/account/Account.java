@@ -1,15 +1,13 @@
 package fr.zm.bankaccount.account;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import fr.zm.bankaccount.enums.ErrorMessages;
 import fr.zm.bankaccount.enums.TransactionType;
-import fr.zm.bankaccount.exceptions.InvalidTransactionException;
 import lombok.Getter;
 
 /**
@@ -30,27 +28,11 @@ public class Account {
 		this.transactions = new ArrayList<>();
 	}
 
-	public Transaction addTransaction(Client client, LocalDate date, BigDecimal amount, TransactionType type,
-			BigDecimal newBalance)
-			throws InvalidTransactionException {
-		validateTransaction(client, date, amount, type);
+	public Transaction addTransaction(Client client, LocalDateTime date, BigDecimal amount, TransactionType type,
+			BigDecimal newBalance) {
 		Transaction newTransaction = new Transaction(client, date, amount, type, newBalance);
 		transactions.add(newTransaction);
 		return newTransaction;
-	}
-
-	/**
-	 * Verifies that a transaction is valid
-	 * 
-	 * @param date
-	 * @param amount
-	 * @throws InvalidTransactionException
-	 */
-	private void validateTransaction(Client client, LocalDate date, BigDecimal amount, TransactionType type)
-			throws InvalidTransactionException {
-
-		if (client.equals(client) && amount.compareTo(new BigDecimal(0)) <= 0)
-			throw new InvalidTransactionException(ErrorMessages.AMOUNT_MUST_BE_POSITIVE.getMessage());
 	}
 
 	public BigDecimal getBalance() {

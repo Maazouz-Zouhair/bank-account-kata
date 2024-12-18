@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +19,7 @@ import fr.zm.bankaccount.account.Account;
 import fr.zm.bankaccount.account.Bank;
 import fr.zm.bankaccount.account.Client;
 import fr.zm.bankaccount.enums.ErrorMessages;
+import fr.zm.bankaccount.enums.TransactionType;
 import fr.zm.bankaccount.exceptions.InvalidTransactionException;
 import fr.zm.bankaccount.exceptions.UnknownClientException;
 import fr.zm.bankaccount.restapi.dto.TransactionResponseDTO;
@@ -43,6 +46,9 @@ public class TransactionServiceUnitTest {
 
         client = new Client("C001", "John", "Doe");
         account = new Account(new Bank("My Bank"), client);
+        account.addTransaction(client, LocalDateTime.now(), BigDecimal.valueOf(100), TransactionType.DEPOSIT,
+                BigDecimal.valueOf(100));
+
     }
 
     @Test
@@ -50,10 +56,13 @@ public class TransactionServiceUnitTest {
         when(clientRepository.findById("C001")).thenReturn(Optional.of(client));
         when(accountRepository.findByClientId("C001")).thenReturn(Optional.of(account));
 
-        TransactionResponseDTO response = transactionService.deposit("C001", LocalDate.now(), new BigDecimal("100.00"));
+        TransactionResponseDTO response = transactionService.deposit("C001", LocalDateTime.now(),
+                new BigDecimal("100.00"));
 
+        BigDecimal expectedBalance = new BigDecimal("200.00");
         assertTrue(response.isSuccess());
         assertEquals("Transaction successful", response.getMessage());
+        assertEquals(expectedBalance, account.getBalance());
     }
 
     @Test
@@ -62,10 +71,55 @@ public class TransactionServiceUnitTest {
         when(clientRepository.findById(invalidClientId)).thenReturn(Optional.empty());
 
         Exception exception = assertThrows(UnknownClientException.class, () -> {
-            transactionService.deposit(invalidClientId, LocalDate.now(), new BigDecimal("100.00"));
+            transactionService.deposit(invalidClientId, LocalDateTime.now(), new BigDecimal("100.00"));
         });
 
         String actualMessage = exception.getMessage();
-        assertTrue(actualMessage.contains(invalidClientId+ErrorMessages.UNKNOWN_CLIENT.getMessage()));
+        assertTrue(actualMessage.contains(invalidClientId + ErrorMessages.UNKNOWN_CLIENT.getMessage()));
+    }
+
+    @Test
+    public void testWithdrawalSuccess() throws InvalidTransactionException {
+        when(clientRepository.findById("C001")).thenReturn(Optional.of(client));
+        when(accountRepository.findByClientId("C001")).thenReturn(Optional.of(account));
+
+        TransactionResponseDTO response = transactionService.withdraw("C001", LocalDateTime.now(),
+                new BigDecimal("10.00"));
+
+        BigDecimal expectedBalance = new BigDecimal("90.00");
+        assertTrue(response.isSuccess());
+        assertEquals("Transaction successful", response.getMessage());
+        assertEquals(expectedBalance, account.getBalance());
+
+    }
+
+    @Test
+    public void testWithdrawalInsufficientFunds() throws InvalidTransactionException {
+        BigDecimal amount = new BigDecimal("1000.00");
+
+        when(clientRepository.findById("C001")).thenReturn(Optional.of(client));
+        when(accountRepository.findByClientId("C001")).thenReturn(Optional.of(account));
+
+        TransactionResponseDTO response = transactionService.withdraw("C001", LocalDateTime.now(),
+                amount);
+
+        String expectedResponseMsg = ErrorMessages.INSUFFICIENT_FUNDS.getMessage() + " : " + account.getBalance()
+                + " < "
+                + amount.abs();
+        assertTrue(!response.isSuccess());
+        assertEquals(expectedResponseMsg, response.getMessage());
+    }
+
+    @Test
+    public void testWithdrawalClientNotFound() {
+        String invalidClientId = "xxx";
+        when(clientRepository.findById(invalidClientId)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(UnknownClientException.class, () -> {
+            transactionService.deposit(invalidClientId, LocalDateTime.now(), new BigDecimal("100.00"));
+        });
+
+        String actualMessage = exception.getMessage();
+        assertTrue(actualMessage.contains(invalidClientId + ErrorMessages.UNKNOWN_CLIENT.getMessage()));
     }
 }
