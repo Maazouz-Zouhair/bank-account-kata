@@ -1,15 +1,15 @@
 package fr.zm.bankaccount.unitTest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +22,7 @@ import fr.zm.bankaccount.enums.ErrorMessages;
 import fr.zm.bankaccount.enums.TransactionType;
 import fr.zm.bankaccount.exceptions.InvalidTransactionException;
 import fr.zm.bankaccount.exceptions.UnknownClientException;
+import fr.zm.bankaccount.restapi.dto.TransactionHistoryDTO;
 import fr.zm.bankaccount.restapi.dto.TransactionResponseDTO;
 import fr.zm.bankaccount.restapi.repository.AccountRepository;
 import fr.zm.bankaccount.restapi.repository.ClientRepository;
@@ -121,5 +122,28 @@ public class TransactionServiceUnitTest {
 
         String actualMessage = exception.getMessage();
         assertTrue(actualMessage.contains(invalidClientId + ErrorMessages.UNKNOWN_CLIENT.getMessage()));
+    }
+
+    @Test
+    public void testGetStatement_Success() {
+
+        when(accountRepository.findByClientId(client.getClientId())).thenReturn(Optional.of(account));
+        when(clientRepository.findById(client.getClientId())).thenReturn(Optional.of(client));
+
+        List<TransactionHistoryDTO> statement = transactionService.getStatement(client.getClientId());
+
+        BigDecimal expectedAmount = new BigDecimal(100.00);
+        String expectedOperation = TransactionType.DEPOSIT.get();
+        assertNotNull(statement);
+        assertEquals(1, statement.size());
+        assertEquals(expectedAmount, statement.get(0).getAmount());
+        assertEquals(expectedOperation, statement.get(0).getOperationType());
+    }
+
+    @Test
+    public void testGetStatement_ClientNotFound() {
+        when(clientRepository.findById(client.getClientId())).thenReturn(Optional.empty());
+
+        assertThrows(UnknownClientException.class, () -> transactionService.getStatement(client.getClientId()));
     }
 }

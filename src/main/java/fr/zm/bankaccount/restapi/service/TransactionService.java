@@ -2,6 +2,9 @@ package fr.zm.bankaccount.restapi.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +18,7 @@ import fr.zm.bankaccount.enums.TransactionType;
 import fr.zm.bankaccount.exceptions.AccountNotFoundException;
 import fr.zm.bankaccount.exceptions.InvalidTransactionException;
 import fr.zm.bankaccount.exceptions.UnknownClientException;
+import fr.zm.bankaccount.restapi.dto.TransactionHistoryDTO;
 import fr.zm.bankaccount.restapi.dto.TransactionResponseDTO;
 import fr.zm.bankaccount.restapi.repository.AccountRepository;
 import fr.zm.bankaccount.restapi.repository.ClientRepository;
@@ -27,6 +31,8 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final ClientRepository clientRepository;
+
+    private static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
     public TransactionService(AccountRepository accountRepository, TransactionRepository transactionRepository,
             ClientRepository clientRepository) {
@@ -91,7 +97,7 @@ public class TransactionService {
             if (type == TransactionType.DEPOSIT) {
                 newBalance = newBalance.add(amount);
             } else if (type == TransactionType.WITHDRAWAL) {
-                newBalance = newBalance.subtract(amount);
+                newBalance = newBalance.subtract(amount.abs());
             }
 
             // Create the transaction with the new balance
@@ -109,4 +115,20 @@ public class TransactionService {
         }
     }
 
+      public List<TransactionHistoryDTO> getStatement(String clientId) {
+        validateClient(clientId);
+        Account account = validateAccount(clientId);
+        return account.getTransactions().stream()
+                .map(transaction -> new TransactionHistoryDTO(
+                        transaction.getType().get(),
+                        formatDate(transaction.getDate()),
+                        transaction.getAmount(),
+                        transaction.getBalance()))
+                .collect(Collectors.toList());
+    }
+
+   public static String formatDate(LocalDateTime dateTime) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATE_FORMAT);
+        return dateTime.format(formatter);
+    }
 }
