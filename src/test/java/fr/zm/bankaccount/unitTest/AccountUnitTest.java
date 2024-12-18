@@ -1,10 +1,9 @@
 package fr.zm.bankaccount.unitTest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,8 +15,8 @@ import fr.zm.bankaccount.enums.TransactionType;
 import fr.zm.bankaccount.exceptions.InvalidTransactionException;
 
 public class AccountUnitTest {
-    
-     private Account account;
+
+    private Account account;
     private Client client;
 
     @BeforeEach
@@ -29,22 +28,11 @@ public class AccountUnitTest {
     @Test
     public void testAddTransaction() throws InvalidTransactionException {
         BigDecimal amount = new BigDecimal("100.00");
-        LocalDate date = LocalDate.now();
+        LocalDateTime date = LocalDateTime.now();
         account.addTransaction(client, date, amount, TransactionType.DEPOSIT, account.getBalance().add(amount));
-        
+
         assertEquals(amount, account.getBalance());
         assertEquals(1, account.getTransactions().size());
     }
 
-    @Test
-    public void testInvalidTransaction() {
-        BigDecimal amount = new BigDecimal("-50.00");
-        LocalDate date = LocalDate.now();
-        
-        Exception exception = assertThrows(InvalidTransactionException.class, () -> {
-            account.addTransaction(client, date, amount, TransactionType.DEPOSIT, account.getBalance());
-        });
-        
-        assertEquals("Amount must be positive.", exception.getMessage());
-    }
 }

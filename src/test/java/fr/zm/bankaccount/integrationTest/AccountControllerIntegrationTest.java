@@ -22,7 +22,7 @@ import fr.zm.bankaccount.account.Client;
 import fr.zm.bankaccount.enums.ErrorMessages;
 import fr.zm.bankaccount.factory.BankFactory;
 import fr.zm.bankaccount.factory.SimpleBankFactory;
-import fr.zm.bankaccount.restapi.dto.DepositRequest;
+import fr.zm.bankaccount.restapi.dto.RequestDTO;
 import fr.zm.bankaccount.restapi.repository.AccountRepository;
 import fr.zm.bankaccount.restapi.repository.ClientRepository;
 
@@ -57,7 +57,7 @@ public class AccountControllerIntegrationTest {
     public void testDeposit() throws Exception {
         // Given
         String clientId = "C001";
-        DepositRequest depositRequest = new DepositRequest(BigDecimal.valueOf(100.00));
+        RequestDTO depositRequest = new RequestDTO(BigDecimal.valueOf(100.00));
 
         // When & Then
         mockMvc.perform(post("/api/accounts/{clientId}/deposit", clientId)
@@ -71,20 +71,20 @@ public class AccountControllerIntegrationTest {
     public void testDepositInvalidAmount() throws Exception {
         // Given
         String clientId = "C001";
-        DepositRequest depositRequest = new DepositRequest(BigDecimal.valueOf(-10.00)); // Invalid amount
+        RequestDTO depositRequest = new RequestDTO(BigDecimal.valueOf(-1)); // Invalid amount
 
         // When & Then
         mockMvc.perform(post("/api/accounts/{clientId}/deposit", clientId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(depositRequest)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$").value(ErrorMessages.AMOUNT_MUST_BE_POSITIVE.getMessage()));
+                .andExpect(jsonPath("$.amount").value("Amount must be greater than or equal to 0.01"));
     }
 
     @Test
     public void testDepositInvalidClient() throws Exception {
         String invalidClientId = "xxx";
-        DepositRequest depositRequest = new DepositRequest(new BigDecimal("100.00"));
+        RequestDTO depositRequest = new RequestDTO(new BigDecimal("100.00"));
 
         mockMvc.perform(post("/api/accounts/{clientId}/deposit", invalidClientId)
                 .contentType(MediaType.APPLICATION_JSON)
