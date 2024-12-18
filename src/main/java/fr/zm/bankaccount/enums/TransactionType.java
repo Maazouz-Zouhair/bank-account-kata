@@ -1,7 +1,8 @@
 package fr.zm.bankaccount.enums;
 
 public enum TransactionType {
-    DEPOSIT("Deposit");
+    DEPOSIT("Deposit"),
+    WITHDRAWAL("Withdrawal");
 
     private final String description;
 

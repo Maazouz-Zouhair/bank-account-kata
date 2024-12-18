@@ -41,6 +41,10 @@ public class TransactionService {
         return processTransaction(clientId, date, amount, TransactionType.DEPOSIT);
     }
 
+    public TransactionResponseDTO withdraw(String clientId, LocalDate date, BigDecimal amount) {
+        return processTransaction(clientId, date, amount, TransactionType.WITHDRAWAL);
+    }
+
     private TransactionResponseDTO processTransaction(String clientId, LocalDate date, BigDecimal amount,
             TransactionType type) {
         Client client = validateClient(clientId);
