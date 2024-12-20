@@ -14,6 +14,7 @@ public class TransactionRepository {
         transactions.add(transaction);
     }
 
+<<<<<<< HEAD
     public List<Transaction> findByClientId(String clientId) {
         List<Transaction> clientTransactions = new ArrayList<>();
         for (Transaction transaction : transactions) {
@@ -22,5 +23,9 @@ public class TransactionRepository {
             }
         }
         return clientTransactions;
+=======
+    public List<Transaction> findAll() {
+        return new ArrayList<>(transactions);
+>>>>>>> origin/bank-account-feature
     }
 }
