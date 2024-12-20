@@ -102,9 +102,8 @@ public class TransactionService {
 
             // Create the transaction with the new balance
             Transaction transaction = new Transaction(client, date, amount, type, newBalance);
-            account.addTransaction(client, date, amount, type, newBalance); // This method can be updated to accept the
-                                                                            // balance if
-            // needed
+            account.addTransaction(client, date, amount, type, newBalance);
+            
             transactionRepository.save(transaction);
             logger.info("{} successful for clientId: {}. Amount: {}", type, client.getClientId(), amount);
             return new TransactionResponseDTO(true, "Transaction successful");
@@ -115,10 +114,11 @@ public class TransactionService {
         }
     }
 
-      public List<TransactionHistoryDTO> getStatement(String clientId) {
+    public List<TransactionHistoryDTO> getStatement(String clientId) {
         validateClient(clientId);
         Account account = validateAccount(clientId);
-        return account.getTransactions().stream()
+        List<Transaction> transactions = transactionRepository.findByClientId(account.getClient().getClientId()); // Assuming this method exists
+        return transactions.stream()
                 .map(transaction -> new TransactionHistoryDTO(
                         transaction.getType().get(),
                         formatDate(transaction.getDate()),

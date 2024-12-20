@@ -47,7 +47,8 @@ public class TransactionServiceUnitTest {
 
         client = new Client("C001", "John", "Doe");
         account = new Account(new Bank("My Bank"), client);
-        account.addTransaction(client, LocalDateTime.now(), BigDecimal.valueOf(100), TransactionType.DEPOSIT,
+        account.addTransaction(client, LocalDateTime.now(), BigDecimal.valueOf(100),
+                TransactionType.DEPOSIT,
                 BigDecimal.valueOf(100));
 
     }
@@ -126,18 +127,17 @@ public class TransactionServiceUnitTest {
 
     @Test
     public void testGetStatement_Success() {
-
-        when(accountRepository.findByClientId(client.getClientId())).thenReturn(Optional.of(account));
         when(clientRepository.findById(client.getClientId())).thenReturn(Optional.of(client));
+        when(accountRepository.findByClientId(client.getClientId())).thenReturn(Optional.of(account));
+
+        when(transactionRepository.findByClientId(client.getClientId())).thenReturn(account.getTransactions());
 
         List<TransactionHistoryDTO> statement = transactionService.getStatement(client.getClientId());
 
-        BigDecimal expectedAmount = new BigDecimal(100.00);
-        String expectedOperation = TransactionType.DEPOSIT.get();
         assertNotNull(statement);
         assertEquals(1, statement.size());
-        assertEquals(expectedAmount, statement.get(0).getAmount());
-        assertEquals(expectedOperation, statement.get(0).getOperationType());
+        assertEquals(new BigDecimal(100.00), statement.get(0).getAmount());
+        assertEquals(TransactionType.DEPOSIT.get(), statement.get(0).getOperationType());
     }
 
     @Test
