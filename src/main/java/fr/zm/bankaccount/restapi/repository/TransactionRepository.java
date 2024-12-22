@@ -14,7 +14,13 @@ public class TransactionRepository {
         transactions.add(transaction);
     }
 
-    public List<Transaction> findAll() {
-        return new ArrayList<>(transactions);
+    public List<Transaction> findByClientId(String clientId) {
+        List<Transaction> clientTransactions = new ArrayList<>();
+        for (Transaction transaction : transactions) {
+            if (transaction.getClient().getClientId().equals(clientId)) {
+                clientTransactions.add(transaction);
+            }
+        }
+        return clientTransactions;
     }
 }
