@@ -1,0 +1,184 @@
+name: CI/CD Pipeline for Bank Account API
+
+on:
+  push:
+    branches:
+      - main
+
+jobs: 
+  compile: 
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with: 
+          fetch-depth: 0
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+      
+      - name: Grant execute permissions to mvnw
+        run: chmod 777 ./mvnw
+
+      - name: Build with Maven
+        run: ./mvnw clean compile
+      
+  unit-tests: 
+    runs-on: ubuntu-latest
+    name: Tests runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with: 
+          fetch-depth: 0
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+
+      - name: Grant execute permissions to mvnw
+        run: chmod 777 ./mvnw
+
+      - name: Running tests
+        run: ./mvnw clean test
+
+  build: 
+    runs-on: ubuntu-latest
+    name: Project build
+    needs: [compile, unit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with: 
+          fetch-depth: 0
+      
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+      
+      - name: Grant execute permissions to mvnw
+        run: chmod 777 ./mvnw
+        
+      - name: Building project
+        run: ./mvnw clean package
+
+  build-image: 
+    runs-on: ubuntu-latest
+    name: Build Docker Image
+    needs: [build]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with: 
+          fetch-depth: 0
+      
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'corretto'
+      
+      - name: Grant execute permissions to mvnw
+        run: chmod 777 ./mvnw
+        
+      - name: Building project
+        run: ./mvnw clean package
+
+      - name: Extract project version
+        id: extract_version
+        run: echo "VERSION=$(./mvnw -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec)" >> $GITHUB_OUTPUT
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with: 
+          username: ${{ secrets.DOCKERHUB_USERNAME }} 
+          password: ${{ secrets.DOCKERHUB_TOKEN }} 
+        
+      - name: Build and Push to DockerHub
+        uses: docker/build-push-action@v5
+        with: 
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/bankaccount:${{ steps.extract_version.outputs.VERSION }}
+          build-args: |
+            PROFILE=dev
+            APP_VERSION=${{ steps.extract_version.outputs.VERSION }}
+  
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build-image]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v1
+        with:
+          version: 'latest'
+      
+      - name: Install Google Cloud SDK
+        run: |
+          echo "Installing Google Cloud SDK..."
+          curl -sSL https://sdk.cloud.google.com | bash
+          # Add Google Cloud SDK to PATH
+          echo "$HOME/google-cloud-sdk/bin" >> $GITHUB_PATH
+          # Activate the service account without using gcloud init
+          echo '${{ secrets.GCP_SA_KEY }}' > $HOME/gcp-key.json
+          gcloud auth activate-service-account --key-file=$HOME/gcp-key.json
+      
+      - name: Install gke-gcloud-auth-plugin
+        run: |
+          gcloud components install gke-gcloud-auth-plugin
+
+      - name: Configure GKE credentials
+        run: |
+          gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER }} --zone ${{ secrets.GKE_LOCATION }} --project ${{ secrets.GKE_PROJECT }}
+      
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f ./k8s/deployment.yml
+          kubectl apply -f ./k8s/service.yml
+
+      - name: Get Service URL
+        id: get-url
+        run: |
+          echo "SERVICE_URL=$(kubectl get svc bank-account-kata -o jsonpath='{.status.loadBalancer.ingress[0].ip}')" >> $GITHUB_ENV
+      
+      - name: Output Service URL
+        run: 
+          echo 'Service URL:' ${{ env.SERVICE_URL }}
+      - name: List Pods
+        run: |
+          kubectl get pods
+        
+
+
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [compile, unit-tests, build, build-image, deploy]
+    if: failure() 
+
+    steps:
+      - name: Install sendmail
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sendmail
+
+      - name: Send Email Notification
+        run: |
+          echo "Subject: CI/CD Pipeline Failure" > email.txt
+          echo "The CI/CD pipeline has failed. Please check the logs." >> email.txt
+          sendmail zmaazouzzouhair@gmail.com < email.txt

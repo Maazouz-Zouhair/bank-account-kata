@@ -3,12 +3,16 @@ target/
 activemq-data
 bin
 build
+LICENSE
 !/**/src/**/bin
 !/**/src/**/build
 build.log
 lib/
+act/
 manifest.yml
 out
+act.exe
+desktop.ini
 overridedb.*
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/

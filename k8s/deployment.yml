@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bank-account-kata
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bank-account-kata
+  template:
+    metadata:
+      labels:
+        app: bank-account-kata
+    spec:
+      containers:
+      - name: bank-account-kata
+        image: zmaazouz/bankaccount:1.0.0
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "dev"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "500m"
+          limits:
+            memory: "512Mi"
+            cpu: "1"
